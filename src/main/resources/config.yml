@@ -1,0 +1,31 @@
+# Worlds where spawn temples are allowed to generate.
+# Leave this list empty to enable every NORMAL/Overworld world.
+enabled-worlds:
+  - world
+
+# Four temples are placed evenly around the world's spawn point by default.
+temples-per-world: 4
+distance-from-spawn: 28
+
+# Keeps structures inside the vertical range the classroom Eaglercraft client
+# can reliably represent.
+maximum-temple-y: 252
+
+# The visible 4x4 base and centered 2x2 upper step choose randomly from this
+# palette. These are deliberately older-client-friendly block types.
+structure-blocks:
+  - STONE_BRICKS
+  - MOSSY_STONE_BRICKS
+  - CRACKED_STONE_BRICKS
+  - COBBLESTONE
+  - MOSSY_COBBLESTONE
+
+# Four zombie spawners are installed at the temple's upper outer corners.
+# The conservative defaults keep four nearby spawners from flooding a class server.
+spawner:
+  min-delay-ticks: 240
+  max-delay-ticks: 480
+  spawn-count: 1
+  max-nearby-zombies: 8
+  required-player-range: 16
+  spawn-range: 4
