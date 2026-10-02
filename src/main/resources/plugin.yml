@@ -1,0 +1,17 @@
+name: EaglerZombiesFall26
+version: '1.0.0'
+main: org.pawling.eaglerzombies.EaglerZombiesPlugin
+api-version: '1.21.11'
+author: Pawling CSD Game Development
+description: Generates zombie temples around world spawn and prevents zombies from burning in sunlight.
+
+commands:
+  zombietemple:
+    description: Zombie temple testing and status tools
+    usage: /zombietemple <status|generate|spawn>
+    permission: eaglerzombies.admin
+
+permissions:
+  eaglerzombies.admin:
+    description: Allows zombie temple testing commands
+    default: op
