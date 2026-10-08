@@ -25,6 +25,9 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerAnimationType;
+import org.bukkit.util.Vector;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
@@ -56,6 +59,7 @@ public final class ZombieInfection implements Listener {
 
     private final EaglerZombiesPlugin plugin;
     private final Map<UUID, Long> exposure = new HashMap<>();
+    private final Map<UUID, Long> zombieSwing = new HashMap<>();
     private final Map<UUID, Long> immunity = new HashMap<>();
     private final Set<UUID> zombies = new HashSet<>();
     private final Map<UUID, Zombie> avatars = new HashMap<>();
@@ -106,6 +110,11 @@ public final class ZombieInfection implements Listener {
         Entity attacker = event.getDamager();
         if (!(attacker instanceof Zombie) && !(attacker instanceof Player player && zombies.contains(player.getUniqueId())))
             return;
+        expose(victim);
+    }
+
+
+    private void expose(Player victim) {
         UUID id = victim.getUniqueId();
         if (zombies.contains(id) || immunity.getOrDefault(id, 0L) > System.currentTimeMillis()
                 || !plugin.getConfig().getBoolean("infection.enabled", true)) return;
@@ -113,6 +122,30 @@ public final class ZombieInfection implements Listener {
         if (!exposure.containsKey(id)) {
             exposure.put(id, System.currentTimeMillis() + millis);
             victim.sendMessage(ChatColor.RED + "You have been bitten! Find an Anti-Zombie Splash Potion before time runs out!");
+        }
+    }
+
+    // Works even on no-PvP classroom servers, where vanilla player damage is blocked
+    // before EntityDamageByEntityEvent can notify other plugins.
+    @EventHandler
+    public void onZombieSwing(PlayerAnimationEvent event) {
+        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
+        Player zombie = event.getPlayer();
+        UUID id = zombie.getUniqueId();
+        if (!zombies.contains(id)) return;
+        long now = System.currentTimeMillis();
+        if (zombieSwing.getOrDefault(id, 0L) + 600L > now) return;
+        Vector facing = zombie.getEyeLocation().getDirection().normalize();
+        for (Player target : zombie.getWorld().getPlayers()) {
+            if (target == zombie || zombies.contains(target.getUniqueId())
+                    || zombie.getLocation().distanceSquared(target.getLocation()) > 9.0
+                    || !zombie.hasLineOfSight(target)) continue;
+            Vector toward = target.getEyeLocation().toVector()
+                    .subtract(zombie.getEyeLocation().toVector());
+            if (toward.lengthSquared() < 0.001 || facing.dot(toward.normalize()) < 0.83) continue;
+            zombieSwing.put(id, now);
+            expose(target);
+            break;
         }
     }
 
@@ -262,11 +295,22 @@ public final class ZombieInfection implements Listener {
         exposure.remove(id);
         immunity.remove(id);
         zombies.remove(id);
+        zombieSwing.remove(id);
         removeAvatar(id);
         previousInvisibility.remove(id);
         endCreative(player);
     }
-    @EventHandler public void onDeath(PlayerDeathEvent e) { cure(e.getEntity()); }
+    @EventHandler public void onDeath(PlayerDeathEvent e) {
+        Player player = e.getEntity();
+        UUID id = player.getUniqueId();
+        exposure.remove(id);
+        immunity.remove(id);
+        zombies.remove(id);
+        player.getPersistentDataContainer().remove(INFECTED);
+        removeAvatar(id);
+        previousInvisibility.remove(id);
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+    }
 
     // Player inventory screens may still appear client-side (E key), but cannot be
     // mutated; no packet-only hacks required by older Eaglercraft clients.
