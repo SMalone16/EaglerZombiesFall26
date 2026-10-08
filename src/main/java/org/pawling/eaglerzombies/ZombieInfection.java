@@ -187,14 +187,19 @@ public final class ZombieInfection implements Listener {
             for (Player other : player.getWorld().getPlayers())
                 if (insideChamber(other)) winners.add(other);
         }
-        for (Player recipient : winners) {
-            UUID id = recipient.getUniqueId();
-            priorModes.putIfAbsent(id, recipient.getGameMode());
-            recipient.setGameMode(GameMode.CREATIVE);
-            long seconds = Math.max(10, plugin.getConfig().getLong("ultimate-loot.creative-seconds", 120));
-            creativeUntil.put(id, System.currentTimeMillis() + seconds * 1000L);
-            recipient.sendMessage(ChatColor.LIGHT_PURPLE + "Undercity elixir: Creative Mode for " + seconds + " seconds!");
-        }
+        // Defer the mode switch so vanilla consumes the one-use potion while the
+        // player is still in survival; otherwise it might not be decremented.
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (Player recipient : winners) {
+                if (!recipient.isOnline()) continue;
+                UUID id = recipient.getUniqueId();
+                priorModes.putIfAbsent(id, recipient.getGameMode());
+                recipient.setGameMode(GameMode.CREATIVE);
+                long seconds = Math.max(10, plugin.getConfig().getLong("ultimate-loot.creative-seconds", 120));
+                creativeUntil.put(id, System.currentTimeMillis() + seconds * 1000L);
+                recipient.sendMessage(ChatColor.LIGHT_PURPLE + "Undercity elixir: Creative Mode for " + seconds + " seconds!");
+            }
+        });
     }
 
     private boolean insideChamber(Player player) {
@@ -294,6 +299,7 @@ public final class ZombieInfection implements Listener {
         UUID id = player.getUniqueId();
         exposure.remove(id);
         immunity.remove(id);
+        if (zombies.contains(id)) player.removePotionEffect(PotionEffectType.INVISIBILITY);
         zombies.remove(id);
         zombieSwing.remove(id);
         removeAvatar(id);
@@ -344,7 +350,10 @@ public final class ZombieInfection implements Listener {
     }
 
     public void shutdown() {
-        for (Player player : Bukkit.getOnlinePlayers()) endCreative(player);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            endCreative(player);
+            if (zombies.contains(player.getUniqueId())) player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        }
         for (UUID id : Set.copyOf(avatars.keySet())) removeAvatar(id);
     }
 }
