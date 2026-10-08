@@ -29,3 +29,19 @@ spawner:
   max-nearby-zombies: 8
   required-player-range: 16
   spawn-range: 4
+
+# Activates only when EaglerCity has published its completed Undercity coordinates.
+undercity-spawner:
+  min-delay-ticks: 300
+  max-delay-ticks: 500
+  max-nearby-zombies: 5
+  required-player-range: 16
+
+infection:
+  enabled: true
+  countdown-seconds: 7
+  immunity-seconds: 10
+
+ultimate-loot:
+  # Creative rewards are temporary to protect a classroom survival server.
+  creative-seconds: 120
