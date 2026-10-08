@@ -32,13 +32,29 @@ public final class EaglerZombiesPlugin extends JavaPlugin implements Listener, T
 
     private File stateFile;
     private YamlConfiguration state;
+    private ZombieInfection infection;
+    private UndercitySpawners cavernSpawners;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         loadState();
+        infection = new ZombieInfection(this);
+        cavernSpawners = new UndercitySpawners(this);
 
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getPluginManager().registerEvents(infection, this);
+        getServer().getScheduler().runTaskTimer(this, infection::tick, 1L, 2L);
+        getServer().getScheduler().runTaskTimer(this, () -> {
+            for (World world : getServer().getWorlds()) if (isEnabledWorld(world)) cavernSpawners.ensure(world);
+        }, 120L, 100L);
+        org.bukkit.inventory.ShapelessRecipe cureRecipe = new org.bukkit.inventory.ShapelessRecipe(
+                new org.bukkit.NamespacedKey(this, "anti_zombie_splash"), ZombieInfection.antidote());
+        cureRecipe.addIngredient(Material.ROTTEN_FLESH);
+        cureRecipe.addIngredient(Material.MILK_BUCKET);
+        cureRecipe.addIngredient(Material.GUNPOWDER);
+        cureRecipe.addIngredient(Material.GLASS_BOTTLE);
+        getServer().addRecipe(cureRecipe);
 
         if (getCommand("zombietemple") != null) {
             getCommand("zombietemple").setExecutor(this);
@@ -59,6 +75,11 @@ public final class EaglerZombiesPlugin extends JavaPlugin implements Listener, T
         });
 
         getLogger().info("EaglerZombiesFall26 enabled: zombie temples active and zombies ignore sunlight.");
+    }
+
+    @Override
+    public void onDisable() {
+        if (infection != null) infection.shutdown();
     }
 
     @EventHandler
@@ -293,6 +314,12 @@ public final class EaglerZombiesPlugin extends JavaPlugin implements Listener, T
             return true;
         }
 
+        if (args[0].equalsIgnoreCase("antidote")) {
+            player.getInventory().addItem(ZombieInfection.antidote());
+            player.sendMessage(ChatColor.GREEN + "One Anti-Zombie Splash Potion added.");
+            return true;
+        }
+
         if (args[0].equalsIgnoreCase("spawn")) {
             Block target = player.getTargetBlockExact(16);
             if (target == null) {
@@ -333,12 +360,13 @@ public final class EaglerZombiesPlugin extends JavaPlugin implements Listener, T
         player.sendMessage(ChatColor.YELLOW + "/" + label + " status");
         player.sendMessage(ChatColor.YELLOW + "/" + label + " generate");
         player.sendMessage(ChatColor.YELLOW + "/" + label + " spawn");
+        player.sendMessage(ChatColor.YELLOW + "/" + label + " antidote");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("status", "generate", "spawn");
+            return List.of("status", "generate", "spawn", "antidote");
         }
         return List.of();
     }

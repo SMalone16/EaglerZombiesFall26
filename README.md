@@ -77,3 +77,6 @@ GitHub Actions builds the plugin with Java 21 and Paper 1.21.11. The current cla
 ```text
 dist/EaglerZombiesFall26-1.0.0.jar
 ```
+
+## Optional Undercity and infection mechanics
+With EaglerCity enabled, this plugin reads its world PDC coordinates and activates four pyramid-room spawners and two exterior shrine spawners. Existing 4×4 surface temples still generate without EaglerCity. When a zombie or infected player hits a survivor, a server-side action-bar 7-second countdown begins (additional hits do not restart it). A splash potion tagged `luckychests:anti_zombie` cures zombie players and gives a nonstacking 10-second immunity window. Standalone users can craft the antidote from rotten flesh + milk bucket + gunpowder + glass bottle, or operators can run `/zombietemple antidote`. Infected players retain their equipment, can melee-infect others and cannot use inventories or interact/build. Paper cannot guarantee true Eaglercraft 1.12 player-skin replacement, so an inert following zombie avatar and invisibility simulate the disguise. Client-side inventory panes may still open but are read-only. The `luckychests:creative_elixir` drink changes only the consumer plus players standing within the 3×3 loot chamber to Creative, returning them to their previous mode after a configurable two minutes (or upon logout).
