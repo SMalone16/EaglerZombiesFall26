@@ -15,4 +15,5 @@ permissions:
   eaglerzombies.admin:
     description: Allows zombie temple testing commands
     default: op
-\nsoftdepend: [EaglerCity]\n
+
+softdepend: [EaglerCity]
